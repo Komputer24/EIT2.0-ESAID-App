@@ -63,11 +63,11 @@ class MainActivity : ComponentActivity() {
                 val ft = 1400
                 val kts = 35
                 val inhg = 16.0
-
+                val boxWidth = (LocalConfiguration.current.screenWidthDp - 20)
                 // Conversion
-                val ftScale = (((ft+ 9999).toDouble() / 109998) * 364)-22  // -9999 to 99999 or 0 to 109998
-                val ktsScale = (((kts - 20).toDouble() / 130) * 364)-22     // 20 to 150 or 0 to 130
-                val inhgScale = ((inhg / 32) * 364)-22         // 0 to 32
+                val ftScale = (((ft+ 9999).toDouble() / 109998) * boxWidth)-22  // -9999 to 99999 or 0 to 109998
+                val ktsScale = (((kts - 20).toDouble() / 130) * boxWidth)-22     // 20 to 150 or 0 to 130
+                val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
 
 //                val interactionSource = remember { MutableInteractionSource() }
 //                val isPressed by interactionSource.collectIsPressedAsState()
@@ -146,13 +146,15 @@ class MainActivity : ComponentActivity() {
                                             .clip(RectangleShape)
                                     ){
                                         Image(
-                                            painterResource(id = R.drawable.pointer_icon),
-                                            contentDescription = "Pointer",
+                                            painterResource(id = R.drawable.indicator_icon),
+                                            contentDescription = "indicator",
                                             modifier = Modifier
-                                                .offset(x = (ftScale).dp) // Control where pointer points from 0 to 364
+                                                .offset(x = (ftScale).dp) // Control where indicator points from 0 to 364
                                         )
                                     }
-                                    Indicator(181,236,261,0, "ft") // Out of 362
+                                    //  Scale(181, 236, 261, 0, "ft") // Out of 362
+                                    Scale(45000,61709,69308,-9999, "ft") // -9999 to 99999 or 0 to 109998
+                                    //Scale(300,0,0,0, "ft") // -9999 to 99999 or 0 to 109998
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -200,13 +202,14 @@ class MainActivity : ComponentActivity() {
                                             .height(42.dp)
                                     ){
                                         Image(
-                                            painterResource(id = R.drawable.pointer_icon),
-                                            contentDescription = "Pointer",
+                                            painterResource(id = R.drawable.indicator_icon),
+                                            contentDescription = "indicator",
                                             modifier = Modifier
-                                                .offset(x = (ktsScale).dp) // Control where pointer points from 0 to 364
+                                                .offset(x = (ktsScale).dp) // Control where indicator points from 0 to 364
                                         )
                                     }
-                                    Indicator(272,0,0, 240, "kts") // Out of 362
+                                    // Scale(272,0,0, 240, "kts")
+                                    Scale(118,0,0, 106, "kts") // 20 to 150 or 0 to 130
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -254,13 +257,14 @@ class MainActivity : ComponentActivity() {
                                             .height(42.dp)
                                     ){
                                         Image(
-                                            painterResource(id = R.drawable.pointer_icon),
-                                            contentDescription = "Pointer",
+                                            painterResource(id = R.drawable.indicator_icon),
+                                            contentDescription = "Indicator",
                                             modifier = Modifier
-                                                .offset(x = (inhgScale).dp) // Control where pointer points from 0 to 364
+                                                .offset(x = (inhgScale).dp) // Control where indicator points from 0 to 364
                                         )
                                     }
-                                    Indicator(260,0,300, 0, "inhg") // Out of 362
+                                    //Scale(260,0,300, 0, "inhg") // Out of 362
+                                    Scale(24,0,26, 0, "inhg") // 0 to 32
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -417,11 +421,12 @@ fun ButtonRow() {
 }
 
 @Composable
-fun Indicator(greenMark: Int, yellowHatchedMark: Int, yellowMark: Int, redHatchedMark: Int, type: String){
-    var greenWidth = 0
-    var yellowHatchedWidth = 0
-    var yellowWidth = 0
-    var redHatchedPos = 0
+fun Scale(greenMark: Number, yellowHatchedMark: Number, yellowMark: Number, redHatchedMark: Number, type: String){
+    var greenWidth: Number = 0
+    var yellowHatchedWidth: Number = 0
+    var yellowWidth: Number = 0
+    var redHatchedMark: Number = 0
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -442,21 +447,40 @@ fun Indicator(greenMark: Int, yellowHatchedMark: Int, yellowMark: Int, redHatche
             //            }
             //        }
             if (type == "ft") {
-                greenWidth = greenMark
-                yellowHatchedWidth = yellowHatchedMark - greenMark
-                yellowWidth = if (yellowHatchedMark > 0) yellowMark - yellowHatchedMark else yellowMark - greenMark
+                // Conversion
+                    // FT Conversion: -9999 to 99999 or 0 to 109998
+                val greenMarkFT = if (greenMark.toDouble() >= 0) ((greenMark.toDouble() + 9999) / 303.8) else ((9999 + (greenMark.toDouble())) / 303.8)
+                val yellowHatchedMarkFT = if (yellowHatchedMark.toDouble() >= 0) ((yellowHatchedMark.toDouble() + 9999) / 303.8) else ((9999 + (yellowHatchedMark.toDouble())) / 303.8)
+                val yellowMarkFT = if (yellowMark.toDouble() >= 0) ((yellowMark.toDouble() + 9999) / 303.8) else ((9999 + (yellowMark.toDouble())) / 303.8)
+
+                greenWidth = greenMarkFT
+                yellowHatchedWidth = (yellowHatchedMarkFT - greenMarkFT)
+                yellowWidth = if (yellowHatchedMarkFT > 0) (yellowMarkFT - yellowHatchedMarkFT) else (yellowMarkFT - greenMarkFT)
             } else if (type == "kts") {
-                greenWidth = greenMark
-                yellowHatchedWidth = yellowHatchedMark - greenMark
-                yellowWidth = if (yellowHatchedMark > 0) yellowMark - yellowHatchedMark else yellowMark - greenMark
+                // Conversion
+                    // KTS Conversion: 20 to 150 or 0 to 130
+                val greenMarkKTS = (((greenMark.toDouble() - 20) / 130 ) * 362)
+                val yellowHatchedMarkKTS = (((yellowHatchedMark.toDouble() - 20) / 130 ) * 362)
+                val yellowMarkKTS = (((yellowMark.toDouble() - 20) / 130 ) * 362)
+                val redHatchedPos = redHatchedMark.toDouble()
+
+                greenWidth = (greenMarkKTS)
+                yellowHatchedWidth = (yellowHatchedMarkKTS - greenMarkKTS)
+                yellowWidth = if (yellowHatchedMarkKTS > 0) (yellowMarkKTS - yellowHatchedMarkKTS) else (yellowMarkKTS - greenMarkKTS)
             } else if (type == "inhg") {
-                greenWidth = greenMark
-                yellowHatchedWidth = yellowHatchedMark - greenMark
-                yellowWidth = if (yellowHatchedMark > 0) yellowMark - yellowHatchedMark else yellowMark - greenMark
+                // Conversion
+                    // INHG Conversion: 0 to 32
+                val greenMarkINHG = (greenMark.toDouble() * 11.43)
+                val yellowHatchedMarkINHG = (yellowHatchedMark.toDouble() * 11.43)
+                val yellowMarkINHG = (yellowMark.toDouble() * 11.43)
+
+                greenWidth = (greenMarkINHG)
+                yellowHatchedWidth = (yellowHatchedMarkINHG - greenMarkINHG)
+                yellowWidth = if (yellowHatchedMarkINHG > 0) (yellowMarkINHG - yellowHatchedMarkINHG) else (yellowMarkINHG - greenMarkINHG)
             }
             Box(
                 modifier = Modifier
-                    .width(greenWidth.dp)
+                    .width(if (type == "ft") (greenWidth.toDouble()).dp else if(type == "kts") (greenWidth.toDouble()).dp else if (type == "inhg") (greenWidth.toDouble()).dp else 0.dp)
                     .height(42.dp)
                     .background(Color.Green),
             ) {}
@@ -465,12 +489,12 @@ fun Indicator(greenMark: Int, yellowHatchedMark: Int, yellowMark: Int, redHatche
                 contentScale = ContentScale.FillBounds,
                 contentDescription = "YellowHatched",
                 modifier = Modifier
-                    .width(yellowHatchedWidth.dp)
+                    .width(if (type == "ft") (yellowHatchedWidth.toDouble()).dp else if(type == "kts") (yellowHatchedWidth.toDouble()).dp else if (type == "inhg") (yellowHatchedWidth.toDouble()).dp else 0.dp)
                     .height(42.dp)
             )
             Box(
                 modifier = Modifier
-                    .width(yellowWidth.dp)
+                    .width(if (type == "ft") (yellowWidth.toDouble()).dp else if(type == "kts") (yellowWidth.toDouble()).dp else if (type == "inhg") (yellowWidth.toDouble()).dp else 0.dp)
                     .height(42.dp)
                     .background(Color.Yellow),
             ) {}
@@ -481,7 +505,8 @@ fun Indicator(greenMark: Int, yellowHatchedMark: Int, yellowMark: Int, redHatche
                     .background(Color.Red),
             ) {}
         }
-        if (redHatchedMark != 0) {
+        if (redHatchedMark.toInt() != 0) {
+            val redHatchedPos = (((redHatchedMark.toDouble() - 20) / 130 ) * 362)
             Image(
                 painterResource(id = R.drawable.red_hatched),
                 contentScale = ContentScale.FillBounds,
@@ -489,7 +514,7 @@ fun Indicator(greenMark: Int, yellowHatchedMark: Int, yellowMark: Int, redHatche
                 modifier = Modifier
                     .width(6.dp)
                     .height(42.dp)
-                    .offset(x = redHatchedMark.dp)
+                    .offset(x = redHatchedPos.dp)
             )
         }
     }
