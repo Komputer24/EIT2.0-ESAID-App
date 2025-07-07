@@ -1,6 +1,7 @@
 package com.example.eit20_app
 
 import android.app.AlertDialog
+import android.content.Intent
 import androidx.compose.material3.AlertDialog
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +53,18 @@ import androidx.compose.ui.unit.sp
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
 
 val showDevelopmentAlert = mutableStateOf(false)
+val selectedIndex = mutableStateOf(1)  // -1 = none selected
+
+val flightDisplay = 1440
+val ft = 1400
+val kts = 35
+val inhg = 16.0
+val boxWidth = 326
+// Conversion
+val ftScale = (((ft+ 9999).toDouble() / 109998) * boxWidth)-22  // -9999 to 99999 or 0 to 109998
+val ktsScale = (((kts - 20).toDouble() / 130) * boxWidth)-22     // 20 to 150 or 0 to 130
+val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,21 +72,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             EIT20_AppTheme{
                 AlertBox()
-
-                val flightDisplay = 1440
-                val ft = 1400
-                val kts = 35
-                val inhg = 16.0
-                val boxWidth = (LocalConfiguration.current.screenWidthDp - 20)
-                // Conversion
-                val ftScale = (((ft+ 9999).toDouble() / 109998) * boxWidth)-22  // -9999 to 99999 or 0 to 109998
-                val ktsScale = (((kts - 20).toDouble() / 130) * boxWidth)-22     // 20 to 150 or 0 to 130
-                val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
-
-//                val interactionSource = remember { MutableInteractionSource() }
-//                val isPressed by interactionSource.collectIsPressedAsState()
-//
-//                val backgroundColor = if (isPressed) Color.Cyan else Color.Blue
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
@@ -95,293 +94,61 @@ class MainActivity : ComponentActivity() {
                         ){
                             Spacer(modifier = Modifier.height(15.dp))
                             ButtonRow()
+                            Spacer(modifier = Modifier.height(15.dp))
+                        }
 
-                            Spacer(modifier = Modifier.height(15.dp))
-                            Row(
-//                                modifier = Modifier
-//                                    .background(Color.Red),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if(flightDisplay < 100000 && flightDisplay > -10000) "${flightDisplay}" else "OOB", // (-9999 FT - 99999 FT)
-                                    fontSize = 130.sp,
-                                )
-                                Column(
-                                    modifier = Modifier
-//                                        .background(Color.Cyan),
-                                ){
-                                    Text(
-                                        text = "FT",
-                                        fontSize = 15.sp,
-                                    )
-                                    Text(
-                                        text = "RA",
-                                        fontSize = 20.sp,
-                                    )
-                                }
-                            }
-                        }
                         // BODY
-                        Column(
-                            modifier = Modifier
-//                                .background(Color.Yellow)
-                                .padding(horizontal = 8.dp)
-                                .fillMaxWidth(),
-                            verticalArrangement = Arrangement.Bottom
-                        ){
-                            Spacer(modifier = Modifier.height(15.dp))
-                            Box(
-                                modifier = Modifier
-                                    .width(LocalConfiguration.current.screenWidthDp.dp)  // 384 for my screen
-                                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
-                                    .border(BorderStroke(2.dp, Color.White))
-                                    .background(Color.Black),
-                            ) {
-                                Column{
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                            .clip(RectangleShape)
-                                    ){
-                                        Image(
-                                            painterResource(id = R.drawable.indicator_icon),
-                                            contentDescription = "indicator",
-                                            modifier = Modifier
-                                                .offset(x = (ftScale).dp) // Control where indicator points from 0 to 364
-                                        )
-                                    }
-                                    //  Scale(181, 236, 261, 0, "ft") // Out of 362
-                                    Scale(45000,61709,69308,-9999, "ft") // -9999 to 99999 or 0 to 109998
-                                    //Scale(300,0,0,0, "ft") // -9999 to 99999 or 0 to 109998
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                            .background(Color.Black),
-                                            contentAlignment = Alignment.Center
-                                    ){
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = if(ft< 100000 && ft> -10000) "${ft}" else "OOB", // (-9999 FT - 99999 FT)
-                                                fontSize = 30.sp,
-                                            )
-                                            Text(
-                                                text = "FT",
-                                                fontSize = 15.sp,
-                                            )
-                                            VerticalDivider(
-                                                color = Color.White,
-                                                thickness = 1.dp,
-                                                modifier = Modifier.padding(horizontal = 8.dp)
-                                            )
-                                            Text(
-                                                text = "DA",
-                                                fontSize = 20.sp,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .width(LocalConfiguration.current.screenWidthDp.dp)  // 384 for my screen
-                                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
-                                    .border(BorderStroke(2.dp, Color.White))
-                                    .clip(RectangleShape)
-                                    .background(Color.Black),
-                            ) {
-                                Column{
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                    ){
-                                        Image(
-                                            painterResource(id = R.drawable.indicator_icon),
-                                            contentDescription = "indicator",
-                                            modifier = Modifier
-                                                .offset(x = (ktsScale).dp) // Control where indicator points from 0 to 364
-                                        )
-                                    }
-                                    // Scale(272,0,0, 240, "kts")
-                                    Scale(118,0,0, 106, "kts") // 20 to 150 or 0 to 130
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                            .background(Color.Black),
-                                        contentAlignment = Alignment.Center
-                                    ){
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = if(kts < 151 && kts > 19) "${kts}" else "OOB", // (20 KTS - 150 KTS)
-                                                fontSize = 30.sp,
-                                            )
-                                            Text(
-                                                text = "KTS",
-                                                fontSize = 15.sp,
-                                            )
-                                            VerticalDivider(
-                                                color = Color.White,
-                                                thickness = 1.dp,
-                                                modifier = Modifier.padding(horizontal = 8.dp)
-                                            )
-                                            Text(
-                                                text = "IAS",
-                                                fontSize = 20.sp,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .width(LocalConfiguration.current.screenWidthDp.dp)  // 384 for my screen
-                                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
-                                    .border(BorderStroke(2.dp, Color.White))
-                                    .clip(RectangleShape)
-                                    .background(Color.Black),
-                            ) {
-                                Column{
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                    ){
-                                        Image(
-                                            painterResource(id = R.drawable.indicator_icon),
-                                            contentDescription = "Indicator",
-                                            modifier = Modifier
-                                                .offset(x = (inhgScale).dp) // Control where indicator points from 0 to 364
-                                        )
-                                    }
-                                    //Scale(260,0,300, 0, "inhg") // Out of 362
-                                    Scale(24,0,26, 0, "inhg") // 0 to 32
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(42.dp)
-                                            .background(Color.Black),
-                                        contentAlignment = Alignment.Center
-                                    ){
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = if(inhg < 33.0 && inhg >= 0.0) "${inhg}" else "OOB", //  (0 IN-HG - 32 IN-HG)
-                                                fontSize = 30.sp,
-                                            )
-                                            Text(
-                                                text = "IN-HG",
-                                                fontSize = 15.sp,
-                                            )
-                                            VerticalDivider(
-                                                color = Color.White,
-                                                thickness = 1.dp,
-                                                modifier = Modifier.padding(horizontal = 8.dp)
-                                            )
-                                            Text(
-                                                text = "MAP",
-                                                fontSize = 20.sp,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(15.dp))
-                        }
+                        chosenHeaderColumn()
+
                         // FOOTER
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth() // Make the Column fill the entire screen
-                                .padding(horizontal = 8.dp)
-                                .height(90.dp),
+                        Column() {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth() // Make the Column fill the entire screen
+                                    .padding(horizontal = 8.dp)
+                                    .height(90.dp),
 //                                .background(Color.Red),
-                            verticalAlignment = Alignment.Bottom // Push the Box to the bottom
-                        ){
-                            OutlinedButton(
-                                onClick = { selectedBtn() },
-                                modifier = Modifier
-                                    .size(width = 115.dp, height = 90.dp)
-                                    .padding(end = 4.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor =Color.Blue,
-                                    contentColor = Color.White,
-                                ),
-                                border = BorderStroke(2.dp, Color.White),
-                                shape = CutCornerShape(7.dp),
-                            ) {
-                                Image(
-                                    painterResource(id = R.drawable.setting_icon),
-                                    contentDescription = "Settings"
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .width(140.dp)  // 384 for my screen
-                                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
-                                    .border(BorderStroke(2.dp, Color.White)),
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ){
-                                    Column{
-                                        Text(
-                                            "FRZ",
-                                            fontSize = 30.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
+                            ){
+                                SettingBtn()
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(140.dp)  // 384 for my screen
+                                        .height(LocalConfiguration.current.screenWidthDp.dp / 3)
+                                        .border(BorderStroke(2.dp, Color.White)),
+                                ) {
                                     Column(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ){
-                                        Text(
-                                            "SLIP",
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.Red
-                                        )
-                                        Text(
-                                            "EHI",
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.Red
-                                        )
+                                        Column{
+                                            Text(
+                                                "FRZ",
+                                                fontSize = 30.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ){
+                                            Text(
+                                                "SLIP",
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Red
+                                            )
+                                            Text(
+                                                "EHI",
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Red
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            OutlinedButton(
-                                onClick = { selectedBtn() },
-                                modifier = Modifier
-                                    .size(width = 115.dp, height = 90.dp)
-                                    .padding(start = 4.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor =Color.Blue,
-                                    contentColor = Color.White,
-                                ),
-                                border = BorderStroke(2.dp, Color.White),
-                                shape = CutCornerShape(7.dp),
-                            ) {
-//                                Image(
-//                                    painterResource(id = R.drawable.info_icon),
-//                                    contentDescription = "Info"
-//                                )
-                                Text(
-                                    "i",
-                                    fontFamily = FontFamily.Serif,
-                                    fontSize = 50.sp
-                                )
+
+                                SupplementalBtn()
                             }
                         }
                     }
@@ -390,14 +157,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun selectedBtn() {
-        showDevelopmentAlert.value = true // 1.2.2, 1.3.2
-    }
+//    private fun selectedBtn() {
+//        showDevelopmentAlert.value = true // 1.2.2, 1.3.2
+//    }
 }
 
 @Composable
 fun ButtonRow() {
-    val selectedIndex = remember { mutableStateOf(1) } // -1 = none selected
     val buttonLabels = listOf("INFO", "FLIGHT", "RAD-ALT")
 
     Row {
@@ -544,5 +310,287 @@ fun AlertBox() { // Replace with your actual Composable name
                 }
             }
         )
+    }
+}
+
+@Composable
+fun SettingBtn() {
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = {
+            val intent = Intent(context, SettingsActivity::class.java)
+            context.startActivity(intent)
+        },
+        modifier = Modifier
+            .size(width = 115.dp, height = 90.dp)
+            .padding(end = 4.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor =Color.Blue,
+            contentColor = Color.White,
+        ),
+        border = BorderStroke(2.dp, Color.White),
+        shape = CutCornerShape(7.dp),
+    ) {
+        Image(
+            painterResource(id = R.drawable.setting_icon),
+            contentDescription = "Settings"
+        )
+    }
+}
+
+@Composable
+fun SupplementalBtn(){
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = {
+            val intent = Intent(context, SupplementalsActivity::class.java)
+            context.startActivity(intent)
+        },
+        modifier = Modifier
+            .size(width = 115.dp, height = 90.dp)
+            .padding(start = 4.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor =Color.Blue,
+            contentColor = Color.White,
+        ),
+        border = BorderStroke(2.dp, Color.White),
+        shape = CutCornerShape(7.dp),
+    ) {
+    //  Image(
+    //      painterResource(id = R.drawable.info_icon),
+    //      contentDescription = "Info"
+    //  )
+        Text(
+            "i",
+            fontFamily = FontFamily.Serif,
+            fontSize = 50.sp
+        )
+    }
+}
+
+@Composable
+fun chosenHeaderColumn(){
+    if(selectedIndex.value == 0){
+        Column(
+            modifier = Modifier.height(566.dp)
+        ) {
+            Text(
+                text = "0", // (-9999 FT - 99999 FT)
+                fontSize = 130.sp,
+            )
+        }
+    }
+    else if(selectedIndex.value == 1){
+        Column(
+            modifier = Modifier
+//                              .background(Color.Yellow)
+                .padding(horizontal = 8.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ){
+
+            Row(
+//                                modifier = Modifier
+//                                    .background(Color.Red),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if(flightDisplay < 100000 && flightDisplay > -10000) "${flightDisplay}" else "OOB", // (-9999 FT - 99999 FT)
+                    fontSize = 130.sp,
+                )
+                Column(
+                    modifier = Modifier
+//                                        .background(Color.Cyan),
+                ){
+                    Text(
+                        text = "FT",
+                        fontSize = 15.sp,
+                    )
+                    Text(
+                        text = "RA",
+                        fontSize = 20.sp,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(15.dp))
+            Box(
+                modifier = Modifier
+                    .width(LocalConfiguration.current.screenWidthDp.dp)  // 384 for my screen
+                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
+                    .border(BorderStroke(2.dp, Color.White))
+                    .background(Color.Black),
+            ) {
+                Column{
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .clip(RectangleShape)
+                    ){
+                        Image(
+                            painterResource(id = R.drawable.indicator_icon),
+                            contentDescription = "indicator",
+                            modifier = Modifier
+                                .offset(x = (ftScale).dp) // Control where indicator points from 0 to 364
+                        )
+                    }
+                    //  Scale(181, 236, 261, 0, "ft") // Out of 362
+                    Scale(45000,61709,69308,-9999, "ft") // -9999 to 99999 or 0 to 109998
+                    //Scale(300,0,0,0, "ft") // -9999 to 99999 or 0 to 109998
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .background(Color.Black),
+                        contentAlignment = Alignment.Center
+                    ){
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if(ft< 100000 && ft> -10000) "${ft}" else "OOB", // (-9999 FT - 99999 FT)
+                                fontSize = 30.sp,
+                            )
+                            Text(
+                                text = "FT",
+                                fontSize = 15.sp,
+                            )
+                            VerticalDivider(
+                                color = Color.White,
+                                thickness = 1.dp,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            Text(
+                                text = "DA",
+                                fontSize = 20.sp,
+                            )
+                        }
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .width(LocalConfiguration.current.screenWidthDp.dp)  // 384 for my screen
+                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
+                    .border(BorderStroke(2.dp, Color.White))
+                    .clip(RectangleShape)
+                    .background(Color.Black),
+            ) {
+                Column{
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                    ){
+                        Image(
+                            painterResource(id = R.drawable.indicator_icon),
+                            contentDescription = "indicator",
+                            modifier = Modifier
+                                .offset(x = (ktsScale).dp) // Control where indicator points from 0 to 364
+                        )
+                    }
+                    // Scale(272,0,0, 240, "kts")
+                    Scale(118,0,0, 106, "kts") // 20 to 150 or 0 to 130
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .background(Color.Black),
+                        contentAlignment = Alignment.Center
+                    ){
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if(kts < 151 && kts > 19) "${kts}" else "OOB", // (20 KTS - 150 KTS)
+                                fontSize = 30.sp,
+                            )
+                            Text(
+                                text = "KTS",
+                                fontSize = 15.sp,
+                            )
+                            VerticalDivider(
+                                color = Color.White,
+                                thickness = 1.dp,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            Text(
+                                text = "IAS",
+                                fontSize = 20.sp,
+                            )
+                        }
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .width(LocalConfiguration.current.screenWidthDp.dp)  // 384 for my screen
+                    .height(LocalConfiguration.current.screenWidthDp.dp / 3)
+                    .border(BorderStroke(2.dp, Color.White))
+                    .clip(RectangleShape)
+                    .background(Color.Black),
+            ) {
+                Column{
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                    ){
+                        Image(
+                            painterResource(id = R.drawable.indicator_icon),
+                            contentDescription = "Indicator",
+                            modifier = Modifier
+                                .offset(x = (inhgScale).dp) // Control where indicator points from 0 to 364
+                        )
+                    }
+                    //Scale(260,0,300, 0, "inhg") // Out of 362
+                    Scale(24,0,26, 0, "inhg") // 0 to 32
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .background(Color.Black),
+                        contentAlignment = Alignment.Center
+                    ){
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if(inhg < 33.0 && inhg >= 0.0) "${inhg}" else "OOB", //  (0 IN-HG - 32 IN-HG)
+                                fontSize = 30.sp,
+                            )
+                            Text(
+                                text = "IN-HG",
+                                fontSize = 15.sp,
+                            )
+                            VerticalDivider(
+                                color = Color.White,
+                                thickness = 1.dp,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            Text(
+                                text = "MAP",
+                                fontSize = 20.sp,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(15.dp))
+        }
+    }else if (selectedIndex.value == 2){
+        Column(
+            modifier = Modifier.height(566.dp)
+        ) {
+            Text(
+                text = "2", // (-9999 FT - 99999 FT)
+                fontSize = 130.sp,
+            )
+        }
     }
 }
