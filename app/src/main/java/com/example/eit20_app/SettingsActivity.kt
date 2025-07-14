@@ -1,6 +1,8 @@
 package com.example.eit20_app
 
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -53,6 +56,21 @@ import com.example.eit20_app.ui.theme.EIT20_AppTheme
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 🔁 Reapply saved brightness here
+        val prefs = getSharedPreferences("slider_prefs", Context.MODE_PRIVATE)
+        val savedBrightness = prefs.getFloat("brightness_slider", 0.5f)
+        val savedVolume = prefs.getFloat("volume_slider", 0.5f)
+
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val calculatedVolume = (savedVolume * maxVolume).toInt()
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, calculatedVolume, 0)
+
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = savedBrightness
+        window.attributes = layoutParams
+
         enableEdgeToEdge()
         setContent {
             EIT20_AppTheme {
@@ -141,8 +159,15 @@ class SettingsActivity : ComponentActivity() {
                                     ),
                                     border = BorderStroke(2.dp, Color.White),
                                     shape = CutCornerShape(7.dp),
+                                    contentPadding = PaddingValues(0.dp),
                                     modifier = Modifier.size(width = 70.dp, height = 70.dp)
                                 ) {
+                                    Image(
+                                        painterResource(id = R.drawable.weight_icon),
+                                        contentDescription = "Volume",
+                                        modifier = Modifier
+                                            .size(width = 35.dp, height = 35.dp)
+                                    )
                                 }
                                 Text(
                                     "GWT 2400 LB",
@@ -248,7 +273,7 @@ class SettingsActivity : ComponentActivity() {
                                 Spacer(modifier = Modifier.width(18.dp))
                                 Box(
                                     modifier = Modifier
-                                        .width(140.dp)  // 384 for my screen
+                                        .width(240.dp)  // 384 for my screen
                                         .height(100.dp)
                                         .border(BorderStroke(2.dp, Color.White)),
                                 ) {
@@ -265,25 +290,6 @@ class SettingsActivity : ComponentActivity() {
                                             )
                                         }
                                     }
-                                }
-                                Spacer(modifier = Modifier.width(18.dp))
-                                OutlinedButton(
-                                    onClick = {
-                                        // Nothing
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.Blue,
-                                        contentColor = Color.White,
-                                    ),
-                                    border = BorderStroke(2.dp, Color.White),
-                                    shape = CutCornerShape(7.dp),
-                                ) {
-                                    Image(
-                                        painterResource(id = R.drawable.questionmark_icon),
-                                        contentDescription = "Brightness",
-                                        modifier = Modifier
-                                            .size(width = 50.dp, height = 70.dp)
-                                    )
                                 }
                             }
                         }

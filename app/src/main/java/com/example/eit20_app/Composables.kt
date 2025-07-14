@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.media.MediaPlayer
 import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -46,6 +47,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.font.FontWeight
 
 
 @Composable
@@ -505,24 +508,6 @@ fun returnHome(){
     }
 }
 
-private fun findActivity(context: Context): Activity? {
-    var currentContext = context
-    while (currentContext is ContextWrapper) {
-        if (currentContext is Activity) {
-            return currentContext
-        }
-        currentContext = currentContext.baseContext
-    }
-    return null
-}
-
-fun setWindowBrightness(context: Context, brightness: Float) {
-    val activity = findActivity(context) ?: return
-    val layoutParams: WindowManager.LayoutParams = activity.window.attributes
-    layoutParams.screenBrightness = brightness
-    activity.window.attributes = layoutParams
-}
-
 @Composable
 fun SettingHeader() {
     Column(
@@ -540,12 +525,15 @@ fun SettingHeader() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             val context = LocalContext.current
-            var sliderPosition by remember { mutableFloatStateOf(0.5f) }
+            var sliderPosition by remember {
+                mutableFloatStateOf(loadSliderValue(context, "brightness_slider", 0.5f))
+            }
             Slider(
                 value = sliderPosition,
-                steps = 5,
+                steps = 0,
                 onValueChange = { newBrightness ->
                     sliderPosition = newBrightness
+                    saveSliderValue(context, "brightness_slider", newBrightness)
                     setWindowBrightness(context, newBrightness)
                 },
                 valueRange = 0f..1f,
@@ -577,17 +565,26 @@ fun SettingHeader() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            var sliderPosition by remember { mutableFloatStateOf(0f) }
+            val context = LocalContext.current
+            var sliderPosition by remember { mutableFloatStateOf(loadSliderValue(context, "volume_slider", 0.5f)) }
+            val mediaPlayer = remember { MediaPlayer.create(context, R.raw.ding_sfx) }
+
+            LaunchedEffect(sliderPosition) {
+                mediaPlayer.setVolume(sliderPosition, sliderPosition)
+                saveSliderValue(context, "volume_slider", sliderPosition)
+            }
+
             Slider(
                 value = sliderPosition,
-                steps = 5,
-                onValueChange = { sliderPosition = it },
+                steps = 0,
+                onValueChange = { newPosition -> sliderPosition = newPosition },
+                valueRange = 0f..1f,
                 modifier = Modifier.width(250.dp)
             )
 
             OutlinedButton(
                 onClick = {
-                    // Nothing
+                    mediaPlayer.start()
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Blue,
@@ -597,12 +594,20 @@ fun SettingHeader() {
                 shape = CutCornerShape(7.dp),
                 modifier = Modifier.offset(x = 10.dp)
             ) {
-                Image(
-                    painterResource(id = R.drawable.volume_icon),
-                    contentDescription = "Volume",
-                    modifier = Modifier
-                        .size(width = 40.dp, height = 50.dp)
-                )
+                Column (
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ){
+                    Image(
+                        painterResource(id = R.drawable.volume_icon),
+                        contentDescription = "Volume",
+                        modifier = Modifier
+                            .size(width = 30.dp, height = 40.dp)
+                    )
+                    Text(
+                        "TEST",
+                        fontSize = 15.sp
+                    )
+                }
             }
         }
     }

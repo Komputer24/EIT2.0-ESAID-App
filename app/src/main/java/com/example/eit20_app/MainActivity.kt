@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
+import android.content.Context
+import android.media.AudioManager
 
 val showDevelopmentAlert = mutableStateOf(false)
 val selectedIndex = mutableStateOf(1)  // -1 = none selected
@@ -68,6 +70,21 @@ val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 🔁 Reapply saved brightness here
+        val prefs = getSharedPreferences("slider_prefs", Context.MODE_PRIVATE)
+        val savedBrightness = prefs.getFloat("brightness_slider", 0.5f)
+        val savedVolume = prefs.getFloat("volume_slider", 0.5f)
+
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val calculatedVolume = (savedVolume * maxVolume).toInt()
+
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = savedBrightness
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, calculatedVolume, 0)
+        window.attributes = layoutParams
+        
         enableEdgeToEdge()
         setContent {
             EIT20_AppTheme{
