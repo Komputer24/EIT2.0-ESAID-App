@@ -612,3 +612,43 @@ fun SettingHeader() {
         }
     }
 }
+
+@Composable
+fun ReturnFooter(){
+    Column{
+        Row(
+            modifier = Modifier
+                .fillMaxWidth() // Make the Column fill the entire screen
+                .padding(horizontal = 8.dp)
+                .height(90.dp),
+//                                .background(Color.Red),
+            horizontalArrangement = Arrangement.Center, // Center items horizontally
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            // Settings
+            returnHome()
+
+            Spacer(modifier = Modifier.width(18.dp))
+            Box(
+                modifier = Modifier
+                    .width(240.dp)  // 384 for my screen
+                    .height(100.dp)
+                    .border(BorderStroke(2.dp, Color.White)),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ){
+                    Column{
+                        Text(
+                            "GWT",
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Yellow
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

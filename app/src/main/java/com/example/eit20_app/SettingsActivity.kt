@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,6 +79,7 @@ class SettingsActivity : ComponentActivity() {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(Color.Black)
                             .padding(
                                 start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
                                 top = innerPadding.calculateTopPadding(),
@@ -255,44 +257,7 @@ class SettingsActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.height(90.dp))
 
                         // FOOTER
-                        Column(
-
-                        ){
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth() // Make the Column fill the entire screen
-                                    .padding(horizontal = 8.dp)
-                                    .height(90.dp),
-//                                .background(Color.Red),
-                                horizontalArrangement = Arrangement.Center, // Center items horizontally
-                                verticalAlignment = Alignment.CenterVertically
-                            ){
-                                // Settings
-                                returnHome()
-
-                                Spacer(modifier = Modifier.width(18.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .width(240.dp)  // 384 for my screen
-                                        .height(100.dp)
-                                        .border(BorderStroke(2.dp, Color.White)),
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ){
-                                        Column{
-                                            Text(
-                                                "GWT",
-                                                fontSize = 30.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.Yellow
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        ReturnFooter()
                     }
                 }
             }
