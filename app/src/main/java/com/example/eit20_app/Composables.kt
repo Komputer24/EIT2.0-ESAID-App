@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.font.FontWeight
 
-
 @Composable
 fun ButtonRow() {
     val buttonLabels = listOf("INFO", "FLIGHT", "RAD-ALT")
@@ -76,189 +75,7 @@ fun ButtonRow() {
 }
 
 @Composable
-fun Scale(greenMark: Number, yellowHatchedMark: Number, yellowMark: Number, redHatchedMark: Number, type: String){
-    var greenWidth: Number = 0
-    var yellowHatchedWidth: Number = 0
-    var yellowWidth: Number = 0
-    var redHatchedPos: Number = 0
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(42.dp)
-    ) {
-        Row{
-            //Marker
-            //        val markerValues = listOf(greenMark, yellowHatchedMark, yellowMark, redHatchedMark)
-            //        markerValues.forEach { marker ->
-            //            if (marker != 0) {
-            //                VerticalDivider(
-            //                    color = Color.Blue,
-            //                    thickness = 1.dp,
-            //                    modifier = Modifier
-            //                        .height(42.dp)
-            //                        .offset(x = (marker + 2).dp)
-            //                )
-            //            }
-            //        }
-            if (type == "ft") {
-                // Conversion
-                // FT Conversion: -9999 to 99999 or 0 to 109998
-                val greenMarkFT = if (greenMark.toDouble() >= 0) ((greenMark.toDouble() + 9999) / 303.8) else ((9999 + (greenMark.toDouble())) / 303.8)
-                val yellowHatchedMarkFT = if (yellowHatchedMark.toDouble() >= 0) ((yellowHatchedMark.toDouble() + 9999) / 303.8) else ((9999 + (yellowHatchedMark.toDouble())) / 303.8)
-                val yellowMarkFT = if (yellowMark.toDouble() >= 0) ((yellowMark.toDouble() + 9999) / 303.8) else ((9999 + (yellowMark.toDouble())) / 303.8)
-
-                greenWidth = greenMarkFT
-                yellowHatchedWidth = (yellowHatchedMarkFT - greenMarkFT)
-                yellowWidth = if (yellowHatchedMarkFT > 0) (yellowMarkFT - yellowHatchedMarkFT) else (yellowMarkFT - greenMarkFT)
-            } else if (type == "kts") {
-                // Conversion
-                // KTS Conversion: 20 to 150 or 0 to 130
-                val greenMarkKTS = (((greenMark.toDouble() - 20) / 130 ) * 362)
-                val yellowHatchedMarkKTS = (((yellowHatchedMark.toDouble() - 20) / 130 ) * 362)
-                val yellowMarkKTS = (((yellowMark.toDouble() - 20) / 130 ) * 362)
-                val redHatchedPos = redHatchedMark.toDouble()
-
-                greenWidth = (greenMarkKTS)
-                yellowHatchedWidth = (yellowHatchedMarkKTS - greenMarkKTS)
-                yellowWidth = if (yellowHatchedMarkKTS > 0) (yellowMarkKTS - yellowHatchedMarkKTS) else (yellowMarkKTS - greenMarkKTS)
-            } else if (type == "inhg") {
-                // Conversion
-                // INHG Conversion: 0 to 32
-                val greenMarkINHG = (greenMark.toDouble() * 11.43)
-                val yellowHatchedMarkINHG = (yellowHatchedMark.toDouble() * 11.43)
-                val yellowMarkINHG = (yellowMark.toDouble() * 11.43)
-
-                greenWidth = (greenMarkINHG)
-                yellowHatchedWidth = (yellowHatchedMarkINHG - greenMarkINHG)
-                yellowWidth = if (yellowHatchedMarkINHG > 0) (yellowMarkINHG - yellowHatchedMarkINHG) else (yellowMarkINHG - greenMarkINHG)
-            }
-            Box(
-                modifier = Modifier
-                    .width(if (type == "ft") (greenWidth.toDouble()).dp else if(type == "kts") (greenWidth.toDouble()).dp else if (type == "inhg") (greenWidth.toDouble()).dp else 0.dp)
-                    .height(42.dp)
-                    .background(Color.Green),
-            ) {}
-            Image(
-                painterResource(id = R.drawable.yellow_hatched),
-                contentScale = ContentScale.FillBounds,
-                contentDescription = "YellowHatched",
-                modifier = Modifier
-                    .width(if (type == "ft") (yellowHatchedWidth.toDouble()).dp else if(type == "kts") (yellowHatchedWidth.toDouble()).dp else if (type == "inhg") (yellowHatchedWidth.toDouble()).dp else 0.dp)
-                    .height(42.dp)
-            )
-            Box(
-                modifier = Modifier
-                    .width(if (type == "ft") (yellowWidth.toDouble()).dp else if(type == "kts") (yellowWidth.toDouble()).dp else if (type == "inhg") (yellowWidth.toDouble()).dp else 0.dp)
-                    .height(42.dp)
-                    .background(Color.Yellow),
-            ) {}
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(42.dp)
-                    .background(Color.Red),
-            ) {}
-        }
-        if (redHatchedMark.toInt() != 0) {
-            val redHatchedPos = (((redHatchedMark.toDouble() - 20) / 130 ) * 362)
-            Image(
-                painterResource(id = R.drawable.red_hatched),
-                contentScale = ContentScale.FillBounds,
-                contentDescription = "RedHatched",
-                modifier = Modifier
-                    .width(6.dp)
-                    .height(42.dp)
-                    .offset(x = redHatchedPos.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun AlertBox() { // Replace with your actual Composable name
-    // Conditionally display the AlertDialog based on the state
-    if (showDevelopmentAlert.value) { // 1.2.1, 1.3.1
-        AlertDialog( // 1.3.2, 1.1.4
-            onDismissRequest = {
-                showDevelopmentAlert.value = false // Dismiss the dialog
-            },
-            title = {
-                Text(text = "Feature in Development")
-            },
-            text = {
-                Text(text = "This feature is currently in development.")
-            },
-            confirmButton = { // 1.3.2, 1.6.1
-                TextButton(
-                    onClick = {
-                        showDevelopmentAlert.value = false // Dismiss on confirm
-                    }
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun SettingBtn() {
-    val context = LocalContext.current
-    OutlinedButton(
-        onClick = {
-            val intent = Intent(context, SettingsActivity::class.java)
-            context.startActivity(intent)
-        },
-        modifier = Modifier
-            .size(width = 115.dp, height = 90.dp)
-            .padding(end = 4.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Blue,
-            contentColor = Color.White,
-        ),
-        border = BorderStroke(2.dp, Color.White),
-        shape = CutCornerShape(7.dp),
-    ) {
-        Image(
-            painterResource(id = R.drawable.setting_icon),
-            contentDescription = "Settings"
-        )
-    }
-}
-
-@Composable
-fun SupplementalBtn(){
-    val context = LocalContext.current
-    OutlinedButton(
-        onClick = {
-            val intent = Intent(context, SupplementalsActivity::class.java)
-            context.startActivity(intent)
-        },
-        modifier = Modifier
-            .size(width = 115.dp, height = 90.dp)
-            .padding(start = 4.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Blue,
-            contentColor = Color.White,
-        ),
-        border = BorderStroke(2.dp, Color.White),
-        shape = CutCornerShape(7.dp),
-    ) {
-        //  Image(
-        //      painterResource(id = R.drawable.info_icon),
-        //      contentDescription = "Info"
-        //  )
-        Text(
-            "i",
-            fontFamily = FontFamily.Serif,
-            fontSize = 50.sp
-        )
-    }
-}
-
-@Composable
-fun chosenHeaderColumn(){
+fun ChosenHeaderColumn(){
     if(selectedIndex.value == 0){
         Column(
             modifier = Modifier.height(566.dp)
@@ -485,13 +302,119 @@ fun chosenHeaderColumn(){
 }
 
 @Composable
-fun returnHome(){
+fun Scale(greenMark: Number, yellowHatchedMark: Number, yellowMark: Number, redHatchedMark: Number, type: String){
+    var greenWidth: Number = 0
+    var yellowHatchedWidth: Number = 0
+    var yellowWidth: Number = 0
+    var redHatchedPos: Number = 0
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+    ) {
+        Row{
+            //Marker
+            //        val markerValues = listOf(greenMark, yellowHatchedMark, yellowMark, redHatchedMark)
+            //        markerValues.forEach { marker ->
+            //            if (marker != 0) {
+            //                VerticalDivider(
+            //                    color = Color.Blue,
+            //                    thickness = 1.dp,
+            //                    modifier = Modifier
+            //                        .height(42.dp)
+            //                        .offset(x = (marker + 2).dp)
+            //                )
+            //            }
+            //        }
+            if (type == "ft") {
+                // Conversion
+                // FT Conversion: -9999 to 99999 or 0 to 109998
+                val greenMarkFT = if (greenMark.toDouble() >= 0) ((greenMark.toDouble() + 9999) / 303.8) else ((9999 + (greenMark.toDouble())) / 303.8)
+                val yellowHatchedMarkFT = if (yellowHatchedMark.toDouble() >= 0) ((yellowHatchedMark.toDouble() + 9999) / 303.8) else ((9999 + (yellowHatchedMark.toDouble())) / 303.8)
+                val yellowMarkFT = if (yellowMark.toDouble() >= 0) ((yellowMark.toDouble() + 9999) / 303.8) else ((9999 + (yellowMark.toDouble())) / 303.8)
+
+                greenWidth = greenMarkFT
+                yellowHatchedWidth = (yellowHatchedMarkFT - greenMarkFT)
+                yellowWidth = if (yellowHatchedMarkFT > 0) (yellowMarkFT - yellowHatchedMarkFT) else (yellowMarkFT - greenMarkFT)
+            } else if (type == "kts") {
+                // Conversion
+                // KTS Conversion: 20 to 150 or 0 to 130
+                val greenMarkKTS = (((greenMark.toDouble() - 20) / 130 ) * 362)
+                val yellowHatchedMarkKTS = (((yellowHatchedMark.toDouble() - 20) / 130 ) * 362)
+                val yellowMarkKTS = (((yellowMark.toDouble() - 20) / 130 ) * 362)
+                val redHatchedPos = redHatchedMark.toDouble()
+
+                greenWidth = (greenMarkKTS)
+                yellowHatchedWidth = (yellowHatchedMarkKTS - greenMarkKTS)
+                yellowWidth = if (yellowHatchedMarkKTS > 0) (yellowMarkKTS - yellowHatchedMarkKTS) else (yellowMarkKTS - greenMarkKTS)
+            } else if (type == "inhg") {
+                // Conversion
+                // INHG Conversion: 0 to 32
+                val greenMarkINHG = (greenMark.toDouble() * 11.43)
+                val yellowHatchedMarkINHG = (yellowHatchedMark.toDouble() * 11.43)
+                val yellowMarkINHG = (yellowMark.toDouble() * 11.43)
+
+                greenWidth = (greenMarkINHG)
+                yellowHatchedWidth = (yellowHatchedMarkINHG - greenMarkINHG)
+                yellowWidth = if (yellowHatchedMarkINHG > 0) (yellowMarkINHG - yellowHatchedMarkINHG) else (yellowMarkINHG - greenMarkINHG)
+            }
+            Box(
+                modifier = Modifier
+                    .width(if (type == "ft") (greenWidth.toDouble()).dp else if(type == "kts") (greenWidth.toDouble()).dp else if (type == "inhg") (greenWidth.toDouble()).dp else 0.dp)
+                    .height(42.dp)
+                    .background(Color.Green),
+            ) {}
+            Image(
+                painterResource(id = R.drawable.yellow_hatched),
+                contentScale = ContentScale.FillBounds,
+                contentDescription = "YellowHatched",
+                modifier = Modifier
+                    .width(if (type == "ft") (yellowHatchedWidth.toDouble()).dp else if(type == "kts") (yellowHatchedWidth.toDouble()).dp else if (type == "inhg") (yellowHatchedWidth.toDouble()).dp else 0.dp)
+                    .height(42.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .width(if (type == "ft") (yellowWidth.toDouble()).dp else if(type == "kts") (yellowWidth.toDouble()).dp else if (type == "inhg") (yellowWidth.toDouble()).dp else 0.dp)
+                    .height(42.dp)
+                    .background(Color.Yellow),
+            ) {}
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .background(Color.Red),
+            ) {}
+        }
+        if (redHatchedMark.toInt() != 0) {
+            val redHatchedPos = (((redHatchedMark.toDouble() - 20) / 130 ) * 362)
+            Image(
+                painterResource(id = R.drawable.red_hatched),
+                contentScale = ContentScale.FillBounds,
+                contentDescription = "RedHatched",
+                modifier = Modifier
+                    .width(6.dp)
+                    .height(42.dp)
+                    .offset(x = redHatchedPos.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingBtn() {
     val context = LocalContext.current
+    val activity = context as? Activity
+
     OutlinedButton(
         onClick = {
-            val intent = Intent(context, MainActivity::class.java)
+            val intent = Intent(context, SettingsActivity::class.java)
             context.startActivity(intent)
+            activity?.overridePendingTransition(0, 0)
         },
+        modifier = Modifier
+            .size(width = 115.dp, height = 90.dp)
+            .padding(end = 4.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Blue,
             contentColor = Color.White,
@@ -500,10 +423,8 @@ fun returnHome(){
         shape = CutCornerShape(7.dp),
     ) {
         Image(
-            painterResource(id = R.drawable.returnhome_icon),
-            contentDescription = "Brightness",
-            modifier = Modifier
-                .size(width = 50.dp, height = 70.dp)
+            painterResource(id = R.drawable.setting_icon),
+            contentDescription = "Settings"
         )
     }
 }
@@ -614,6 +535,38 @@ fun SettingHeader() {
 }
 
 @Composable
+fun SupplementalBtn(){
+    val context = LocalContext.current
+    val activity = context as? Activity
+    OutlinedButton(
+        onClick = {
+            val intent = Intent(context, SupplementalsActivity::class.java)
+            context.startActivity(intent)
+            activity?.overridePendingTransition(0, 0)
+        },
+        modifier = Modifier
+            .size(width = 115.dp, height = 90.dp)
+            .padding(start = 4.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Blue,
+            contentColor = Color.White,
+        ),
+        border = BorderStroke(2.dp, Color.White),
+        shape = CutCornerShape(7.dp),
+    ) {
+        //  Image(
+        //      painterResource(id = R.drawable.info_icon),
+        //      contentDescription = "Info"
+        //  )
+        Text(
+            "i",
+            fontFamily = FontFamily.Serif,
+            fontSize = 50.sp
+        )
+    }
+}
+
+@Composable
 fun ReturnFooter(){
     Column{
         Row(
@@ -626,7 +579,7 @@ fun ReturnFooter(){
             verticalAlignment = Alignment.CenterVertically
         ){
             // Settings
-            returnHome()
+            ReturnHome()
 
             Spacer(modifier = Modifier.width(18.dp))
             Box(
@@ -652,3 +605,62 @@ fun ReturnFooter(){
         }
     }
 }
+
+@Composable
+fun ReturnHome(){
+    val context = LocalContext.current
+    val activity = context as? Activity // Safely cast context to an Activity
+
+    OutlinedButton(
+        onClick = {
+            val intent = Intent(context, MainActivity::class.java)
+            context.startActivity(intent)
+            activity?.overridePendingTransition(0, 0) // Disable the enter animation for MainActivity
+        },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Blue,
+            contentColor = Color.White,
+        ),
+        border = BorderStroke(2.dp, Color.White),
+        shape = CutCornerShape(7.dp),
+    ) {
+        Image(
+            painterResource(id = R.drawable.returnhome_icon),
+            contentDescription = "Return Home", // Changed contentDescription for clarity
+            modifier = Modifier
+                .size(width = 50.dp, height = 70.dp)
+        )
+    }
+}
+
+
+
+
+@Composable
+fun AlertBox() { // Replace with your actual Composable name
+    // Conditionally display the AlertDialog based on the state
+    if (showDevelopmentAlert.value) { // 1.2.1, 1.3.1
+        AlertDialog( // 1.3.2, 1.1.4
+            onDismissRequest = {
+                showDevelopmentAlert.value = false // Dismiss the dialog
+            },
+            title = {
+                Text(text = "Feature in Development")
+            },
+            text = {
+                Text(text = "This feature is currently in development.")
+            },
+            confirmButton = { // 1.3.2, 1.6.1
+                TextButton(
+                    onClick = {
+                        showDevelopmentAlert.value = false // Dismiss on confirm
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+}
+
+

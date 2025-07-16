@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // BODY
-                        chosenHeaderColumn()
+                        ChosenHeaderColumn()
                         // FOOTER
                         Column(
 
