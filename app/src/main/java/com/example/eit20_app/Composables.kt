@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -80,12 +81,22 @@ fun ButtonRow() {
 fun ChosenHeaderColumn(){
     if(selectedIndex.value == 0){
         Column(
-            modifier = Modifier.height(566.dp)
+            modifier = Modifier.height(566.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "0", // (-9999 FT - 99999 FT)
-                fontSize = 130.sp,
+            InfoInfo(25.0, "°C", "OAT")
+            InfoInfo(2400, "LB", "GWT")
+            InfoInfo(1400, "FT", "DA")
+            Divider(
+                color = Color.White,
+                thickness = 3.dp,
+                modifier = Modifier.padding(vertical = 8.dp)
             )
+            InfoInfo(120, "KTS", "VNE")
+            InfoInfo(22.9, "IN-HG", "MCP")
+            InfoInfo(6900, "DA-FT", "OGE")
+            InfoInfo(25.7, "IN-HG", "SMP")
+            InfoInfo(11300, "DA-FT", "IGE")
         }
     }
     else if(selectedIndex.value == 1){
@@ -555,6 +566,63 @@ fun SettingHeader() {
                         fontSize = 15.sp
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoInfo(number: Number, unit: String, measure: String){
+    Box(
+        modifier = Modifier
+            .width(350.dp)
+            .background(Color.Black)
+            .padding(5.dp)
+            .border(1.dp, Color.White),
+        contentAlignment = Alignment.CenterEnd // Align Row to the right inside the Box
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = number.toString(),
+                fontSize = 40.sp,
+                color = Color.White,
+                modifier = Modifier.padding(end = 4.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .border(1.dp, Color.White)
+                    .padding(0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = unit,
+                        fontSize = 15.sp,
+                        color = Color.White,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(50.dp)
+                        .height(2.dp)
+                        .background(Color.White)
+                )
+
+                Text(
+                    text = measure,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }
