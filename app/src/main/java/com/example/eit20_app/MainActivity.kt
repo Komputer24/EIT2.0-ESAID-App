@@ -1,8 +1,10 @@
 package com.example.eit20_app
 
-import android.app.AlertDialog
+import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.Intent
-import androidx.compose.material3.AlertDialog
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,8 +12,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,40 +21,31 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CutCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
-import android.content.Context
 import android.media.AudioManager
+import androidx.annotation.RequiresPermission
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
 
-val showDevelopmentAlert = mutableStateOf(false)
+val bluetoothNotEnabled = mutableStateOf(false)
 val selectedIndex = mutableStateOf(1)  // -1 = none selected
 
 val flightDisplay = 1440
@@ -68,15 +59,25 @@ val ktsScale = (((kts - 20).toDouble() / 130) * boxWidth)-22     // 20 to 150 or
 val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
 
 class MainActivity : ComponentActivity() {
+
+    // BLUETOOTH_AREA
+    private lateinit var bluetoothHelper: BluetoothHelper
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // BLUETOOTH_AREA
+        bluetoothHelper = BluetoothHelper(this)
+        bluetoothHelper.requestEnableBluetooth()
+
+
         // 🔁 Reapply saved brightness here
-        val prefs = getSharedPreferences("slider_prefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("slider_prefs", MODE_PRIVATE)
         val savedBrightness = prefs.getFloat("brightness_slider", 0.5f)
         val savedVolume = prefs.getFloat("volume_slider", 0.5f)
 
-        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         val calculatedVolume = (savedVolume * maxVolume).toInt()
 
@@ -84,11 +85,13 @@ class MainActivity : ComponentActivity() {
         layoutParams.screenBrightness = savedBrightness
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, calculatedVolume, 0)
         window.attributes = layoutParams
-        
+
+
         enableEdgeToEdge()
         setContent {
             EIT20_AppTheme{
-                AlertBox()
+
+                //BluetoothToggle(activity = this)
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
@@ -172,11 +175,44 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+                BluetoothMonitor(bluetoothNotEnabled)
+                AlertBox("You must enable Bluetooth to continue", bluetoothNotEnabled)
             }
         }
     }
 
-//    private fun selectedBtn() {
-//        showDevelopmentAlert.value = true // 1.2.2, 1.3.2
-//    }
+    // BLUETOOTH_AREA
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == BluetoothHelper.REQUEST_ENABLE_BT) {
+            bluetoothNotEnabled.value = resultCode != Activity.RESULT_OK
+        }
+    }
+}
+
+// BLUETOOTH_AREA
+@Composable
+fun BluetoothMonitor(bluetoothNotEnabled: MutableState<Boolean>) {
+    val context = LocalContext.current
+    val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            bluetoothNotEnabled.value = bluetoothAdapter?.isEnabled != true
+            delay(1000) // Check every 1 second
+        }
+    }
+}
+
+@Composable
+fun AlertBox(msg: String, bluetoothNotEnabled: MutableState<Boolean>) {
+    if (bluetoothNotEnabled.value) {
+        AlertDialog(
+            onDismissRequest = {}, // Cannot dismiss manually
+            title = { Text("Bluetooth Required") },
+            text = { Text(msg) },
+            confirmButton = {}
+        )
+    }
 }

@@ -1,9 +1,7 @@
 package com.example.eit20_app
 
 import android.app.Activity
-import android.content.Context
 import android.content.ContextWrapper
-import android.content.Intent
 import android.media.MediaPlayer
 import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
@@ -24,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -31,8 +30,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +52,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.mutableStateOf
+import java.time.format.TextStyle
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect // Import LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @Composable
 fun ButtonRow() {
@@ -84,19 +101,21 @@ fun ChosenHeaderColumn(){
             modifier = Modifier.height(566.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            InfoInfo(25.0, "°C", "OAT")
-            InfoInfo(2400, "LB", "GWT")
-            InfoInfo(1400, "FT", "DA")
+            InfoInfo(if(!bluetoothNotEnabled.value) {25.0} else {0}, "°C", "OAT")
+            InfoInfo(if(!bluetoothNotEnabled.value) {2400} else {0}, "LB", "GWT")
+            InfoInfo(if(!bluetoothNotEnabled.value) {1400} else {0}, "FT", "DA")
+
             Divider(
                 color = Color.White,
                 thickness = 3.dp,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            InfoInfo(120, "KTS", "VNE")
-            InfoInfo(22.9, "IN-HG", "MCP")
-            InfoInfo(6900, "DA-FT", "OGE")
-            InfoInfo(25.7, "IN-HG", "SMP")
-            InfoInfo(11300, "DA-FT", "IGE")
+
+            InfoInfo(if(!bluetoothNotEnabled.value) {120} else {0}, "KTS", "VNE")
+            InfoInfo(if(!bluetoothNotEnabled.value) {22.9} else {0}, "IN-HG", "MCP")
+            InfoInfo(if(!bluetoothNotEnabled.value) {6900} else {0}, "DA-FT", "OGE")
+            InfoInfo(if(!bluetoothNotEnabled.value) {25.7} else {0}, "IN-HG", "SMP")
+            InfoInfo(if(!bluetoothNotEnabled.value) {11300} else {0}, "DA-FT", "IGE")
         }
     }
     else if(selectedIndex.value == 1){
@@ -116,7 +135,7 @@ fun ChosenHeaderColumn(){
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if(flightDisplay < 100000 && flightDisplay > -10000) "${flightDisplay}" else "OOB", // (-9999 FT - 99999 FT)
+                    text = if (flightDisplay < 100000 && flightDisplay > -10000 && !bluetoothNotEnabled.value) "${flightDisplay}" else "ERR",
                     fontSize = 130.sp,
                 )
                 Column(
@@ -170,7 +189,7 @@ fun ChosenHeaderColumn(){
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if(ft< 100000 && ft> -10000) "${ft}" else "OOB", // (-9999 FT - 99999 FT)
+                                text = if(ft< 100000 && ft> -10000 && !bluetoothNotEnabled.value) "${ft}" else "ERR", // (-9999 FT - 99999 FT)
                                 fontSize = 30.sp,
                             )
                             Text(
@@ -225,7 +244,7 @@ fun ChosenHeaderColumn(){
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if(kts < 151 && kts > 19) "${kts}" else "OOB", // (20 KTS - 150 KTS)
+                                text = if(kts < 151 && kts > 19 && !bluetoothNotEnabled.value) "${kts}" else "ERR", // (20 KTS - 150 KTS)
                                 fontSize = 30.sp,
                             )
                             Text(
@@ -280,7 +299,7 @@ fun ChosenHeaderColumn(){
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if(inhg < 33.0 && inhg >= 0.0) "${inhg}" else "OOB", //  (0 IN-HG - 32 IN-HG)
+                                text = if(inhg < 33.0 && inhg >= 0.0 && !bluetoothNotEnabled.value) "${inhg}" else "ERR", //  (0 IN-HG - 32 IN-HG)
                                 fontSize = 30.sp,
                             )
                             Text(
@@ -319,7 +338,7 @@ fun ChosenHeaderColumn(){
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (flightDisplay < 100000 && flightDisplay > -10000) "$flightDisplay" else "OOB",
+                        text = if (flightDisplay < 100000 && flightDisplay > -10000 && !bluetoothNotEnabled.value) "$flightDisplay" else "ERR",
                         fontSize = 130.sp,
                     )
                     Column {
@@ -333,6 +352,28 @@ fun ChosenHeaderColumn(){
                         )
                     }
                 }
+//                Row(){
+//                    var username by remember { mutableStateOf("") }
+//
+//                    TextField(
+//                        value = username,
+//                        onValueChange = { username = it },
+//                        placeholder = { Text("Email or username" ) },
+//                        shape = RoundedCornerShape(25.dp),
+//                        colors = TextFieldDefaults.colors( // Use the colors parameter
+//                            focusedContainerColor = Color(0xFF85AAB3), // Use this for when the TextField is focused
+//                            unfocusedContainerColor = Color(0xFF85AAB3), // Use this for when the TextField is not focused
+//                            focusedTextColor = Color.White, // Use this for the focused text color
+//                            unfocusedTextColor = Color.White, // Use this for the unfocused text color
+//                            focusedIndicatorColor = Color.Transparent, // Remove underline when focused
+//                            unfocusedIndicatorColor = Color.Transparent, // Remove underline when unfocused
+//                            disabledIndicatorColor = Color.Transparent,
+//                            focusedPlaceholderColor = Color.White, // Set placeholder color when focused
+//                            unfocusedPlaceholderColor = Color.White
+//                        ),
+//                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp)
+//                    )
+//                }
             }
         }
     }
@@ -723,36 +764,6 @@ fun ReturnHome(){
             contentDescription = "Return Home", // Changed contentDescription for clarity
             modifier = Modifier
                 .size(width = 50.dp, height = 70.dp)
-        )
-    }
-}
-
-
-
-
-@Composable
-fun AlertBox() { // Replace with your actual Composable name
-    // Conditionally display the AlertDialog based on the state
-    if (showDevelopmentAlert.value) { // 1.2.1, 1.3.1
-        AlertDialog( // 1.3.2, 1.1.4
-            onDismissRequest = {
-                showDevelopmentAlert.value = false // Dismiss the dialog
-            },
-            title = {
-                Text(text = "Feature in Development")
-            },
-            text = {
-                Text(text = "This feature is currently in development.")
-            },
-            confirmButton = { // 1.3.2, 1.6.1
-                TextButton(
-                    onClick = {
-                        showDevelopmentAlert.value = false // Dismiss on confirm
-                    }
-                ) {
-                    Text("OK")
-                }
-            }
         )
     }
 }
