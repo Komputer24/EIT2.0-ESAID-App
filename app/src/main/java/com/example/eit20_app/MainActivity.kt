@@ -4,7 +4,10 @@ import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,10 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
 import android.media.AudioManager
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresPermission
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.platform.LocalContext
@@ -62,14 +67,24 @@ class MainActivity : ComponentActivity() {
 
     // BLUETOOTH_AREA
     private lateinit var bluetoothHelper: BluetoothHelper
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+
+    private val requestBluetooth = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        bluetoothNotEnabled.value = result.resultCode != Activity.RESULT_OK
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // BLUETOOTH_AREA
+
         bluetoothHelper = BluetoothHelper(this)
-        bluetoothHelper.requestEnableBluetooth()
+
+        if (!bluetoothHelper.isBluetoothEnabled()) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            requestBluetooth.launch(enableBtIntent)
+        }
 
 
         // 🔁 Reapply saved brightness here
@@ -175,35 +190,36 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-                BluetoothMonitor(bluetoothNotEnabled)
+                BluetoothStateListener()
                 AlertBox("You must enable Bluetooth to continue", bluetoothNotEnabled)
             }
-        }
-    }
-
-    // BLUETOOTH_AREA
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == BluetoothHelper.REQUEST_ENABLE_BT) {
-            bluetoothNotEnabled.value = resultCode != Activity.RESULT_OK
         }
     }
 }
 
 // BLUETOOTH_AREA
 @Composable
-fun BluetoothMonitor(bluetoothNotEnabled: MutableState<Boolean>) {
+fun BluetoothStateListener() {
     val context = LocalContext.current
-    val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            bluetoothNotEnabled.value = bluetoothAdapter?.isEnabled != true
-            delay(1000) // Check every 1 second
+    DisposableEffect(Unit) {
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                val state = intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                bluetoothNotEnabled.value = state != BluetoothAdapter.STATE_ON
+            }
+        }
+
+        context.registerReceiver(receiver, filter)
+
+        onDispose {
+            context.unregisterReceiver(receiver)
         }
     }
 }
+
 
 @Composable
 fun AlertBox(msg: String, bluetoothNotEnabled: MutableState<Boolean>) {
