@@ -141,13 +141,13 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        if (bluetoothAdapter?.isEnabled == false) {
-            // Request to enable Bluetooth
-            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            requestBluetooth.launch(enableBtIntent)
-        } else {
-            // Bluetooth is already enabled, launch the device picker
-        }
+//        if (bluetoothAdapter?.isEnabled == false) {
+//            // Request to enable Bluetooth
+//            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+//            requestBluetooth.launch(enableBtIntent)
+//        } else {
+//            // Bluetooth is already enabled, launch the device picker
+//        }
 
 
         // 🔁 Reapply saved brightness here
@@ -254,28 +254,28 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 BluetoothStateListener()
-                //launchBluetoothDevicePicker(bluetoothEnabled)
+                launchBluetoothDevicePicker(bluetoothEnabled)
             }
         }
     }
-//    @Composable
-//    private fun launchBluetoothDevicePicker(bluetooth: MutableState<Boolean>) {
-//        if (bluetooth.value) {
-//            val bluetoothPicker = Intent("android.bluetooth.devicepicker.action.LAUNCH");
-//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.FILTER_TYPE", 1);
-//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.NEED_AUTH", false);
-//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.LAUNCH_PACKAGE", "com.cake.x0a.WoBo");
-//
-//            requestBluetoothDevicePicker.launch(bluetoothPicker)
-//        }else{
-//            AlertDialog(
-//                onDismissRequest = {}, // Cannot dismiss manually
-//                title = { Text("Bluetooth Required") },
-//                text = { Text("You must enable Bluetooth to continue") },
-//                confirmButton = {}
-//            )
-//        }
-//    }
+    @Composable
+    private fun launchBluetoothDevicePicker(bluetooth: MutableState<Boolean>) {
+        if (bluetooth.value) {
+            val bluetoothPicker = Intent("android.bluetooth.devicepicker.action.LAUNCH");
+            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.FILTER_TYPE", 1);
+            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.NEED_AUTH", false);
+            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.LAUNCH_PACKAGE", "com.cake.x0a.WoBo");
+
+            requestBluetoothDevicePicker.launch(bluetoothPicker)
+        }else{
+            AlertDialog(
+                onDismissRequest = {}, // Cannot dismiss manually
+                title = { Text("Bluetooth Required") },
+                text = { Text("You must enable Bluetooth to continue") },
+                confirmButton = {}
+            )
+        }
+    }
 }
 
 // BLUETOOTH_AREA
