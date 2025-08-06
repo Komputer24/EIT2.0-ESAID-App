@@ -2,10 +2,7 @@ package com.example.eit20_app
 
 import android.Manifest
 import android.app.Activity
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
@@ -40,17 +37,21 @@ import androidx.compose.ui.unit.sp
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
 import android.media.AudioManager
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresPermission
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.delay
 
-val bluetoothNotEnabled = mutableStateOf(false)
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+
+val bluetoothEnabled = mutableStateOf(false)
 val selectedIndex = mutableStateOf(1)  // -1 = none selected
 
 val flightDisplay = 1440
@@ -66,24 +67,86 @@ val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
 class MainActivity : ComponentActivity() {
 
     // BLUETOOTH_AREA
-    private lateinit var bluetoothHelper: BluetoothHelper
+
+    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+        val bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothManager.adapter
+    }
 
     private val requestBluetooth = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        bluetoothNotEnabled.value = result.resultCode != Activity.RESULT_OK
+        bluetoothEnabled.value = result.resultCode == RESULT_OK
     }
+
+    fun isBluetoothEnabled(): Boolean = bluetoothAdapter?.isEnabled == true
+
+
+    private val requestBluetoothDevicePicker =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val device: BluetoothDevice? = result.data?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+
+                if (device != null) {
+                    try {
+                        // Check for BLUETOOTH_CONNECT permission
+                        if (ActivityCompat.checkSelfPermission(
+                                this,
+                                Manifest.permission.BLUETOOTH_CONNECT
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            // Request permission before accessing the device
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                                1001
+                            )
+                            return@registerForActivityResult
+                        }
+
+                        // Safe to access device details
+                        Toast.makeText(
+                            this,
+                            "Selected device: ${device.name} (${device.address})",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        // Example: Connect using RFCOMM (classic Bluetooth)
+                        // val uuid = YOUR_UUID
+                        // val bluetoothSocket: BluetoothSocket? = device.createRfcommSocketToServiceRecord(uuid)
+                        // bluetoothSocket?.connect()
+
+                    } catch (e: SecurityException) {
+                        // Handle the security exception safely
+                        Toast.makeText(
+                            this,
+                            "Bluetooth permission denied. Cannot access device.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Bluetooth device selection cancelled.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // BLUETOOTH_AREA
+        if (bluetoothAdapter == null) {
+            // Device doesn't support Bluetooth
+            Toast.makeText(this, "Bluetooth not supported on this device.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        bluetoothHelper = BluetoothHelper(this)
-
-        if (!bluetoothHelper.isBluetoothEnabled()) {
+        if (bluetoothAdapter?.isEnabled == false) {
+            // Request to enable Bluetooth
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             requestBluetooth.launch(enableBtIntent)
+        } else {
+            // Bluetooth is already enabled, launch the device picker
         }
 
 
@@ -191,10 +254,28 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 BluetoothStateListener()
-                AlertBox("You must enable Bluetooth to continue", bluetoothNotEnabled)
+                //launchBluetoothDevicePicker(bluetoothEnabled)
             }
         }
     }
+//    @Composable
+//    private fun launchBluetoothDevicePicker(bluetooth: MutableState<Boolean>) {
+//        if (bluetooth.value) {
+//            val bluetoothPicker = Intent("android.bluetooth.devicepicker.action.LAUNCH");
+//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.FILTER_TYPE", 1);
+//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.NEED_AUTH", false);
+//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.LAUNCH_PACKAGE", "com.cake.x0a.WoBo");
+//
+//            requestBluetoothDevicePicker.launch(bluetoothPicker)
+//        }else{
+//            AlertDialog(
+//                onDismissRequest = {}, // Cannot dismiss manually
+//                title = { Text("Bluetooth Required") },
+//                text = { Text("You must enable Bluetooth to continue") },
+//                confirmButton = {}
+//            )
+//        }
+//    }
 }
 
 // BLUETOOTH_AREA
@@ -208,7 +289,7 @@ fun BluetoothStateListener() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
                 val state = intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-                bluetoothNotEnabled.value = state != BluetoothAdapter.STATE_ON
+                bluetoothEnabled.value = state == BluetoothAdapter.STATE_ON
             }
         }
 
@@ -217,18 +298,5 @@ fun BluetoothStateListener() {
         onDispose {
             context.unregisterReceiver(receiver)
         }
-    }
-}
-
-
-@Composable
-fun AlertBox(msg: String, bluetoothNotEnabled: MutableState<Boolean>) {
-    if (bluetoothNotEnabled.value) {
-        AlertDialog(
-            onDismissRequest = {}, // Cannot dismiss manually
-            title = { Text("Bluetooth Required") },
-            text = { Text(msg) },
-            confirmButton = {}
-        )
     }
 }
