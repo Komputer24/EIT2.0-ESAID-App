@@ -261,12 +261,12 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun launchBluetoothDevicePicker(bluetooth: MutableState<Boolean>) {
         if (bluetooth.value) {
-            val bluetoothPicker = Intent("android.bluetooth.devicepicker.action.LAUNCH");
-            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.FILTER_TYPE", 1);
-            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.NEED_AUTH", false);
-            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.LAUNCH_PACKAGE", "com.cake.x0a.WoBo");
-
-            requestBluetoothDevicePicker.launch(bluetoothPicker)
+//            val bluetoothPicker = Intent("android.bluetooth.devicepicker.action.LAUNCH");
+//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.FILTER_TYPE", 1);
+//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.NEED_AUTH", false);
+//            bluetoothPicker.putExtra("android.bluetooth.devicepicker.extra.LAUNCH_PACKAGE", "com.cake.x0a.WoBo");
+//
+//            requestBluetoothDevicePicker.launch(bluetoothPicker)
         }else{
             AlertDialog(
                 onDismissRequest = {}, // Cannot dismiss manually
