@@ -26,12 +26,26 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.EIT20_App">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Listen for pairing requests -->
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.PAIRING_REQUEST" />
+            </intent-filter>
+
+            <!-- Listen for connection access requests -->
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.CONNECTION_ACCESS_REQUEST" />
+            </intent-filter>
+
+            <!-- Optional: Declare that your app can handle specific device name -->
+            <meta-data android:name="android.bluetooth.device.name" android:value="CAN2BT" />
         </activity>
+
         <activity android:name=".SettingsActivity"/>
         <activity android:name=".SupplementalsActivity"/>
     </application>
