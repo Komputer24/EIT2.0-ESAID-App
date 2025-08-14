@@ -98,24 +98,24 @@ fun ButtonRow() {
 fun ChosenHeaderColumn(){
     if(selectedIndex.value == 0){
         Column(
-            modifier = Modifier.height(566.dp).fillMaxWidth(),
+            modifier = Modifier.height(543.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            InfoInfo(if(bluetoothEnabled.value) {25.0} else {0}, "°C", "OAT")
-            InfoInfo(if(bluetoothEnabled.value) {2400} else {0}, "LB", "GWT")
-            InfoInfo(if(bluetoothEnabled.value) {1400} else {0}, "FT", "DA")
+            InfoInfo(if(checkSppStatus()) {25.0} else {0}, "°C", "OAT")
+            InfoInfo(if(checkSppStatus()) {2400} else {0}, "LB", "GWT")
+            InfoInfo(if(checkSppStatus()) {1400} else {0}, "FT", "DA")
 
             Divider(
                 color = Color.White,
                 thickness = 3.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 5.dp)
             )
 
-            InfoInfo(if(bluetoothEnabled.value) {120} else {0}, "KTS", "VNE")
-            InfoInfo(if(bluetoothEnabled.value) {22.9} else {0}, "IN-HG", "MCP")
-            InfoInfo(if(bluetoothEnabled.value) {6900} else {0}, "DA-FT", "OGE")
-            InfoInfo(if(bluetoothEnabled.value) {25.7} else {0}, "IN-HG", "SMP")
-            InfoInfo(if(bluetoothEnabled.value) {11300} else {0}, "DA-FT", "IGE")
+            InfoInfo(if(checkSppStatus()) {120} else {0}, "KTS", "VNE")
+            InfoInfo(if(checkSppStatus()) {22.9} else {0}, "IN-HG", "MCP")
+            InfoInfo(if(checkSppStatus()) {6900} else {0}, "DA-FT", "OGE")
+            InfoInfo(if(checkSppStatus()) {25.7} else {0}, "IN-HG", "SMP")
+            InfoInfo(if(checkSppStatus()) {11300} else {0}, "DA-FT", "IGE")
         }
     }
     else if(selectedIndex.value == 1){
@@ -135,8 +135,8 @@ fun ChosenHeaderColumn(){
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (flightDisplay < 100000 && flightDisplay > -10000 && bluetoothEnabled.value) "${flightDisplay}" else "ERR",
-                    fontSize = 130.sp,
+                    text = if (flightDisplay < 100000 && flightDisplay > -10000 && checkSppStatus()) "${flightDisplay}" else "ERR",
+                    fontSize = 110.sp,
                 )
                 Column(
                     modifier = Modifier
@@ -189,7 +189,7 @@ fun ChosenHeaderColumn(){
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if(ft< 100000 && ft> -10000 && bluetoothEnabled.value) "${ft}" else "ERR", // (-9999 FT - 99999 FT)
+                                text = if(ft< 100000 && ft> -10000 && checkSppStatus()) "${ft}" else "ERR", // (-9999 FT - 99999 FT)
                                 fontSize = 30.sp,
                             )
                             Text(
@@ -244,7 +244,7 @@ fun ChosenHeaderColumn(){
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if(kts < 151 && kts > 19 && bluetoothEnabled.value) "${kts}" else "ERR", // (20 KTS - 150 KTS)
+                                text = if(kts < 151 && kts > 19 && checkSppStatus()) "${kts}" else "ERR", // (20 KTS - 150 KTS)
                                 fontSize = 30.sp,
                             )
                             Text(
@@ -299,7 +299,7 @@ fun ChosenHeaderColumn(){
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if(inhg < 33.0 && inhg >= 0.0 && bluetoothEnabled.value) "${inhg}" else "ERR", //  (0 IN-HG - 32 IN-HG)
+                                text = if(inhg < 33.0 && inhg >= 0.0 && checkSppStatus()) "${inhg}" else "ERR", //  (0 IN-HG - 32 IN-HG)
                                 fontSize = 30.sp,
                             )
                             Text(
@@ -326,7 +326,7 @@ fun ChosenHeaderColumn(){
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(566.dp), // Only this part gets 566.dp height
+                .height(543.dp), // Only this part gets 566.dp height
             contentAlignment = Alignment.Center // Centers children vertically and horizontally by default
         ) {
             Column(
@@ -338,7 +338,7 @@ fun ChosenHeaderColumn(){
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (flightDisplay < 100000 && flightDisplay > -10000 && bluetoothEnabled.value) "$flightDisplay" else "ERR",
+                        text = if (flightDisplay < 100000 && flightDisplay > -10000 && checkSppStatus()) "$flightDisplay" else "ERR",
                         fontSize = 130.sp,
                     )
                     Column {
@@ -618,7 +618,7 @@ fun InfoInfo(number: Number, unit: String, measure: String){
         modifier = Modifier
             .width(350.dp)
             .background(Color.Black)
-            .padding(5.dp)
+            .padding(4.dp)
             .border(1.dp, Color.White),
         contentAlignment = Alignment.CenterEnd // Align Row to the right inside the Box
     ) {
@@ -627,7 +627,7 @@ fun InfoInfo(number: Number, unit: String, measure: String){
         ) {
             Text(
                 text = number.toString(),
-                fontSize = 40.sp,
+                fontSize = 38.sp,
                 color = Color.White,
                 modifier = Modifier.padding(end = 4.dp)
             )

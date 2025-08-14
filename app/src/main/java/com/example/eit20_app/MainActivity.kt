@@ -12,7 +12,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,8 +30,13 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.*
 
 val selectedIndex = mutableStateOf(1)  // -1 = none selected
@@ -46,14 +50,11 @@ val boxWidth = 326
 val ftScale = (((ft+ 9999).toDouble() / 109998) * boxWidth)-22  // -9999 to 99999 or 0 to 109998
 val ktsScale = (((kts - 20).toDouble() / 130) * boxWidth)-22     // 20 to 150 or 0 to 130
 val inhgScale = ((inhg.toDouble() / 32) * boxWidth)-22         // 0 to 32
-
-
 val TARGET_DEVICE_MAC = "84:C6:92:56:0B:BD"
 val TARGET_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB") // common SPP UUID
 
-val bluetoothEnabled = mutableStateOf(
-    BluetoothAdapter.getDefaultAdapter()?.isEnabled == true
-)
+val connectionStatus = mutableStateOf("Not connected")
+fun checkSppStatus(): Boolean = connectionStatus.value == "Connected"
 
 class MainActivity : ComponentActivity() {
 
@@ -63,6 +64,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private var connectThread: ConnectThread? = null
+    private var inputStream: InputStream? = null
+    private var outputStream: OutputStream? = null
+    private val TAG = "CAN2BT"
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -72,32 +76,22 @@ class MainActivity : ComponentActivity() {
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     device?.let {
                         if (it.address == TARGET_DEVICE_MAC) {
-                            // Stop discovery once found
                             if (ActivityCompat.checkSelfPermission(
                                     this@MainActivity,
                                     Manifest.permission.BLUETOOTH_SCAN
                                 ) == PackageManager.PERMISSION_GRANTED
-                                || ActivityCompat.checkSelfPermission(
-                                    this@MainActivity,
-                                    Manifest.permission.BLUETOOTH_CONNECT
-                                ) == PackageManager.PERMISSION_GRANTED
                             ) {
                                 bluetoothAdapter?.cancelDiscovery()
                             } else {
-                                // Request permission or handle lack of permission gracefully
                                 ActivityCompat.requestPermissions(
                                     this@MainActivity,
-                                    arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT),
+                                    arrayOf(
+                                        Manifest.permission.BLUETOOTH_SCAN,
+                                        Manifest.permission.BLUETOOTH_CONNECT
+                                    ),
                                     1002
                                 )
                             }
-                            Toast.makeText(
-                                this@MainActivity,
-                                "Found target device: ${it.name} (${it.address})",
-                                Toast.LENGTH_SHORT
-                            ).show()
-
-                            // Connect to the target device
                             connectToDevice(it)
                         }
                     }
@@ -109,11 +103,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startBluetoothScan() {
-        if (bluetoothAdapter == null) {
-            Toast.makeText(this, "Bluetooth not supported", Toast.LENGTH_SHORT).show()
-            return
+    private val btStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val state = intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+            when(state) {
+                BluetoothAdapter.STATE_OFF -> {
+                    connectionStatus.value = "Disconnected"
+                    connectThread?.cancel()
+                }
+                BluetoothAdapter.STATE_ON -> {
+                    // Bluetooth is back on — reconnect immediately
+                    connectThread?.cancel() // cancel any stale connection
+                    if (ActivityCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        val pairedDevice = bluetoothAdapter?.bondedDevices
+                            ?.find { it.address == TARGET_DEVICE_MAC }
+
+                        pairedDevice?.let {
+                            connectToDevice(it)
+                        } ?: startBluetoothScan()
+                    }
+                }
+            }
         }
+    }
+
+
+
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try { unregisterReceiver(btStateReceiver) } catch (_: Exception) {}
+    }
+
+    private fun startBluetoothScan() {
+        if (bluetoothAdapter == null) return
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.BLUETOOTH_SCAN
@@ -127,149 +158,131 @@ class MainActivity : ComponentActivity() {
             return
         }
         if (bluetoothAdapter!!.isDiscovering) bluetoothAdapter!!.cancelDiscovery()
-
-        registerReceiver(
-            bluetoothReceiver,
-            IntentFilter(BluetoothDevice.ACTION_FOUND)
-        )
-        registerReceiver(
-            bluetoothReceiver,
-            IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-        )
-
+        registerReceiver(bluetoothReceiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
+        registerReceiver(bluetoothReceiver, IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED))
         bluetoothAdapter!!.startDiscovery()
         Toast.makeText(this, "Scanning for devices…", Toast.LENGTH_SHORT).show()
     }
 
     private fun connectToDevice(device: BluetoothDevice) {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-                1003
-            )
-            return
-        }
-
         connectThread = ConnectThread(device)
         connectThread?.start()
     }
 
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
-
         private var socket: BluetoothSocket? = null
 
         override fun run() {
-            if (ActivityCompat.checkSelfPermission(
-                    this@MainActivity,
-                    Manifest.permission.BLUETOOTH_CONNECT
-                ) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(
-                    this@MainActivity,
-                    Manifest.permission.BLUETOOTH_SCAN
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                // Permission not granted, abort connection or request permission elsewhere before starting this thread
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Bluetooth permission required", Toast.LENGTH_SHORT).show()
-                }
-                return
-            }
-
-            // Safe to create socket now
-            socket = device.createRfcommSocketToServiceRecord(TARGET_UUID)
-
-            // Safe to cancel discovery now
-            bluetoothAdapter?.cancelDiscovery()
-
             try {
+                if (ActivityCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    runOnUiThread { connectionStatus.value = "Permission missing" }
+                    return
+                }
+
+                socket = device.createRfcommSocketToServiceRecord(TARGET_UUID)
+                bluetoothAdapter?.cancelDiscovery()
+
+                // Set status to "Connecting" before attempting connection
+                runOnUiThread { connectionStatus.value = "Connecting" }
+
                 socket?.connect()
-                runOnUiThread {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Connected to device ${device.name}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                // TODO: Manage connected socket (read/write data)
+
+                inputStream = socket?.inputStream
+                outputStream = socket?.outputStream
+
+                runOnUiThread { connectionStatus.value = "Connected" }
+
+                startReadingData()
+                monitorConnection() // start monitoring socket health
             } catch (e: IOException) {
-                Log.e("Bluetooth", "Could not connect to device", e)
-                runOnUiThread {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Connection failed: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                try {
-                    socket?.close()
-                } catch (closeException: IOException) {
-                    Log.e("Bluetooth", "Could not close socket", closeException)
-                }
+                runOnUiThread { connectionStatus.value = "Connection failed" }
+                Log.e(TAG, "Could not connect", e)
+                try { socket?.close() } catch (_: IOException) {}
             }
         }
 
         fun cancel() {
+            try { socket?.close() } catch (e: IOException) { Log.e(TAG, "Could not close socket", e) }
+        }
+    }
+
+
+    private fun startReadingData() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val buffer = ByteArray(1024)
+            var bytes: Int
             try {
-                socket?.close()
+                while (inputStream?.read(buffer).also { bytes = it ?: -1 } != -1) {
+                    val data = buffer.copyOf(bytes)
+                    Log.d(TAG, data.joinToString(",") { String.format("%02X", it) })
+                }
             } catch (e: IOException) {
-                Log.e("Bluetooth", "Could not close socket", e)
+                connectionStatus.value = "Disconnected"
+                Log.e(TAG, "Error reading data", e)
             }
         }
     }
 
+    private fun monitorConnection() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                try {
+                    outputStream?.write(byteArrayOf(0)) // heartbeat
+                    kotlinx.coroutines.delay(2000)
+                } catch (e: IOException) {
+                    connectionStatus.value = "Disconnected"
+                    break
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         if (bluetoothAdapter == null) {
-            Toast.makeText(this, "Bluetooth not supported on this device.", Toast.LENGTH_SHORT)
-                .show()
+            Toast.makeText(this, "Bluetooth not supported.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val prefs = getSharedPreferences("slider_prefs", MODE_PRIVATE)
-        val savedBrightness = prefs.getFloat("brightness_slider", 0.5f)
-        val savedVolume = prefs.getFloat("volume_slider", 0.5f)
-
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        val calculatedVolume = (savedVolume * maxVolume).toInt()
-
-        val layoutParams = window.attributes
-        layoutParams.screenBrightness = savedBrightness
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, calculatedVolume, 0)
-        window.attributes = layoutParams
-
         enableEdgeToEdge()
+
         setContent {
             EIT20_AppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
                         modifier = Modifier
                             .background(Color.Black)
-                            .fillMaxSize(),
+                            .fillMaxSize()
+                            .padding(
+                                start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                                top = innerPadding.calculateTopPadding(),
+                                end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                                bottom = 0.dp
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
-                                    top = innerPadding.calculateTopPadding(),
-                                    end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
-                                    bottom = 0.dp
-                                ),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Spacer(modifier = Modifier.height(15.dp))
-                            ButtonRow()
-                            Spacer(modifier = Modifier.height(15.dp))
-                        }
+                        val status by connectionStatus
+                        Text(
+                            text = "SPP Status: $status",
+                            color = when(status) {
+                                "Connected" -> Color.Green
+                                "Connecting" -> Color.Yellow
+                                else -> Color.Red
+                            },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
 
+
+                        Spacer(modifier = Modifier.height(5.dp))
+                        ButtonRow()
+                        Spacer(modifier = Modifier.height(15.dp))
                         ChosenHeaderColumn()
 
                         Column {
@@ -320,22 +333,49 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
+                    CheckSppConnection()
                 }
-                BluetoothStateListener()
-                launchBluetoothScan(bluetoothEnabled)
+
+                // Attempt connection in the background
+                LaunchedEffect(Unit) {
+                    if (ActivityCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        val pairedDevice = try {
+                            bluetoothAdapter?.bondedDevices?.find { it.address == TARGET_DEVICE_MAC }
+                        } catch (e: SecurityException) {
+                            null
+                        }
+
+                        if (pairedDevice != null) {
+                            connectToDevice(pairedDevice)
+                        } else {
+                            startBluetoothScan()
+                        }
+                    } else {
+                        ActivityCompat.requestPermissions(
+                            this@MainActivity,
+                            arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                            1001
+                        )
+                        connectionStatus.value = "Permission required"
+                    }
+                }
             }
         }
     }
 
     @Composable
-    private fun launchBluetoothScan(bluetooth: MutableState<Boolean>) {
-        if (bluetooth.value) {
-            startBluetoothScan()
-        } else {
+    private fun CheckSppConnection() {
+        val status by connectionStatus
+        if (status != "Connected" && status != "Connecting") {
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("Bluetooth Required") },
-                text = { Text("You must enable Bluetooth to continue") },
+                title = { Text("SPP Connection Failed") },
+                text = { Text("You must pair and connect to the CAN-BT via Bluetooth") },
                 confirmButton = {}
             )
         }
@@ -343,29 +383,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            unregisterReceiver(bluetoothReceiver)
-        } catch (_: Exception) {}
+        try { unregisterReceiver(bluetoothReceiver) } catch (_: Exception) {}
         connectThread?.cancel()
-    }
-}
-
-@Composable
-fun BluetoothStateListener() {
-    val context = LocalContext.current
-    val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-
-    DisposableEffect(Unit) {
-        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context?, intent: Intent?) {
-                val state = intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-                bluetoothEnabled.value = state == BluetoothAdapter.STATE_ON
-            }
-        }
-        context.registerReceiver(receiver, filter)
-        onDispose {
-            context.unregisterReceiver(receiver)
-        }
     }
 }
