@@ -72,7 +72,7 @@ import androidx.core.content.ContextCompat
 
 @Composable
 fun ButtonRow() {
-    val buttonLabels = listOf("INFO", "FLIGHT", "RAD-ALT")
+    val buttonLabels = listOf("INFO", "RAD-ALT", "FLIGHT")
 
     Row {
         buttonLabels.forEachIndexed { index, label ->
@@ -80,7 +80,7 @@ fun ButtonRow() {
                 onClick = { selectedIndex.value = index },
                 modifier = Modifier
                     .size(width = 115.dp, height = 60.dp)
-                    .padding(end = if (index == buttonLabels.size - 1) 0.dp else 4.dp),
+                    .padding(end = if (index == buttonLabels.size - 2) 0.dp else 4.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (selectedIndex.value == index) Color.White else Color.Blue,
                     contentColor = if (selectedIndex.value == index) Color.Blue else Color.White,
@@ -119,6 +119,61 @@ fun ChosenHeaderColumn(){
         }
     }
     else if(selectedIndex.value == 1){
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(543.dp), // Only this part gets 566.dp height
+            contentAlignment = Alignment.Center // Centers children vertically and horizontally by default
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (flightDisplay < 100000 && flightDisplay > -10000 && checkSppStatus()) "$flightDisplay" else "ERR",
+                        fontSize = 130.sp,
+                    )
+                    Column {
+                        Text(
+                            text = "FT",
+                            fontSize = 15.sp,
+                        )
+                        Text(
+                            text = "RA",
+                            fontSize = 20.sp,
+                        )
+                    }
+                }
+//                Row(){
+//                    var username by remember { mutableStateOf("") }
+//
+//                    TextField(
+//                        value = username,
+//                        onValueChange = { username = it },
+//                        placeholder = { Text("Email or username" ) },
+//                        shape = RoundedCornerShape(25.dp),
+//                        colors = TextFieldDefaults.colors( // Use the colors parameter
+//                            focusedContainerColor = Color(0xFF85AAB3), // Use this for when the TextField is focused
+//                            unfocusedContainerColor = Color(0xFF85AAB3), // Use this for when the TextField is not focused
+//                            focusedTextColor = Color.White, // Use this for the focused text color
+//                            unfocusedTextColor = Color.White, // Use this for the unfocused text color
+//                            focusedIndicatorColor = Color.Transparent, // Remove underline when focused
+//                            unfocusedIndicatorColor = Color.Transparent, // Remove underline when unfocused
+//                            disabledIndicatorColor = Color.Transparent,
+//                            focusedPlaceholderColor = Color.White, // Set placeholder color when focused
+//                            unfocusedPlaceholderColor = Color.White
+//                        ),
+//                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp)
+//                    )
+//                }
+            }
+        }
+    }
+    else if(selectedIndex.value == 2) {
         Column(
             modifier = Modifier
 //                              .background(Color.Yellow)
@@ -320,61 +375,6 @@ fun ChosenHeaderColumn(){
                 }
             }
             Spacer(modifier = Modifier.height(15.dp))
-        }
-    }
-    else if(selectedIndex.value == 2) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(543.dp), // Only this part gets 566.dp height
-            contentAlignment = Alignment.Center // Centers children vertically and horizontally by default
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (flightDisplay < 100000 && flightDisplay > -10000 && checkSppStatus()) "$flightDisplay" else "ERR",
-                        fontSize = 130.sp,
-                    )
-                    Column {
-                        Text(
-                            text = "FT",
-                            fontSize = 15.sp,
-                        )
-                        Text(
-                            text = "RA",
-                            fontSize = 20.sp,
-                        )
-                    }
-                }
-//                Row(){
-//                    var username by remember { mutableStateOf("") }
-//
-//                    TextField(
-//                        value = username,
-//                        onValueChange = { username = it },
-//                        placeholder = { Text("Email or username" ) },
-//                        shape = RoundedCornerShape(25.dp),
-//                        colors = TextFieldDefaults.colors( // Use the colors parameter
-//                            focusedContainerColor = Color(0xFF85AAB3), // Use this for when the TextField is focused
-//                            unfocusedContainerColor = Color(0xFF85AAB3), // Use this for when the TextField is not focused
-//                            focusedTextColor = Color.White, // Use this for the focused text color
-//                            unfocusedTextColor = Color.White, // Use this for the unfocused text color
-//                            focusedIndicatorColor = Color.Transparent, // Remove underline when focused
-//                            unfocusedIndicatorColor = Color.Transparent, // Remove underline when unfocused
-//                            disabledIndicatorColor = Color.Transparent,
-//                            focusedPlaceholderColor = Color.White, // Set placeholder color when focused
-//                            unfocusedPlaceholderColor = Color.White
-//                        ),
-//                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp)
-//                    )
-//                }
-            }
         }
     }
 }

@@ -39,7 +39,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
 
-val selectedIndex = mutableStateOf(1)  // -1 = none selected
+val selectedIndex = mutableStateOf(2)  // -1 = none selected
 
 val flightDisplay = 1440
 val ft = 1400
