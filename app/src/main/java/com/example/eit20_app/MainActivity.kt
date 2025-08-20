@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +17,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,9 +38,13 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.eit20_app.ui.theme.EIT20_AppTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
+import java.io.InputStreamReader
 import java.io.OutputStream
 import java.util.*
 
@@ -210,21 +219,85 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    var canFrame = mutableStateListOf<String>()  // this will hold every CAN frame
+    private val frames = listOf(
+        ":S7FFN0001000F41CCE148;",
+        ":S7FFN0004398271DF7FFF;",
+        ":S7FFN00057FFFFFFF7FFF;",
+        ":S7FFN000641EEACF741ED;",
+        ":S7FFN000741ED9F8A7FFF;",
+        ":S7FFN00087FFFFFFF3982;",
+        ":S7FFN00097FFFFFFF0000;",
+        ":S7FFN000A7FFFFFFF434A;",
+        ":S7FFN0015434A96264037;",
+        ":S7FFN000B4037819A7FFF;",
+        ":S7FFN000C0000000F41CC;",
+        ":S7FFN000D00000000BCA0;",
+        ":S7FFN000EBCA000003F7F;",
+        ":S7FFN000F3F7F00007FFF;",
+        ":S7FFN00107FFFFFFF7FFF;",
+        ":S7FFN00117FFFFFFF017C;",
+        ":S7FFN00254128286C6A93;",
+        ":S7FFN0024014000010008;",
+        ":S7FFN0002495500160620;",
+        ":S7FFN0003062020250001;",
+        ":S7FFN00167FFFFFFF7FFF;",
+        ":S7FFN00177FFFFFFF00AE;",
+        ":S7FFN00137FFFFFFF0000;",
+        ":S7FFN00147FFFFFFF7FFF;",
+        ":S7FFN001841CCE1480000;"
+    )
 
-    private fun startReadingData() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val buffer = ByteArray(1024)
-            var bytes: Int
+    fun sendFrames() {
+        Thread {
             try {
-                while (inputStream?.read(buffer).also { bytes = it ?: -1 } != -1) {
-                    val data = buffer.copyOf(bytes)
-                    Log.d(TAG, data.joinToString(",") { String.format("%02X", it) })
+                frames.forEach { frame ->
+                    outputStream?.write(frame.toByteArray(Charsets.UTF_8))
+                    outputStream?.flush()
+                    Log.d(TAG, "Sent frame: $frame")
+
+                    // Append frame to the Compose-friendly list
+                    runOnUiThread {
+                        canFrame.add(frame)
+                    }
+
+                    Thread.sleep(50) // small delay between frames
                 }
             } catch (e: IOException) {
-                connectionStatus.value = "Disconnected"
-                Log.e(TAG, "Error reading data", e)
+                Log.e(TAG, "Error sending frames", e)
             }
-        }
+        }.start()
+    }
+
+    private fun startReadingData() {
+        Thread {
+            try {
+                val reader = BufferedReader(InputStreamReader(inputStream!!, Charsets.UTF_8))
+
+                // First line from device — likely "CAN-BT-APPL"
+                val firstLine = reader.readLine()
+                firstLine?.takeIf { it.isNotBlank() }?.let { line ->
+                    runOnUiThread { canFrame.add(line) }
+                }
+
+                // Now start sending frames after greeting received
+                sendFrames()
+
+                // Read the rest of incoming frames
+                while (true) {
+                    val line = reader.readLine() ?: break
+                    line.split(";").forEach { frame ->
+                        val trimmedFrame = frame.trim()
+                        if (trimmedFrame.isNotEmpty()) {
+                            runOnUiThread { canFrame.add(trimmedFrame) }
+                        }
+                    }
+                }
+
+            } catch (e: IOException) {
+                runOnUiThread { connectionStatus.value = "Disconnected" }
+            }
+        }.start()
     }
 
     private fun monitorConnection() {
@@ -283,8 +356,30 @@ class MainActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.height(5.dp))
                         ButtonRow()
                         Spacer(modifier = Modifier.height(15.dp))
-                        ChosenHeaderColumn()
 
+                        val scrollState = rememberScrollState()
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.8f)
+                                .height(30.dp)
+                                .verticalScroll(scrollState)
+                                .border(1.dp, Color.White),
+                        ) {
+                            Column {
+                                canFrame.forEach { frame ->
+                                    Text(
+                                        text = frame.trim(),         // remove any leading/trailing spaces
+                                        color = Color.White,
+                                        textAlign = TextAlign.Center,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.fillMaxWidth() // make text span full width
+                                    )
+                                }
+                            }
+                        }
+
+                        ChosenHeaderColumn()
                         Column {
                             Row(
                                 modifier = Modifier

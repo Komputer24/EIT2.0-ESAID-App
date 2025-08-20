@@ -191,7 +191,7 @@ fun ChosenHeaderColumn(){
             ) {
                 Text(
                     text = if (flightDisplay < 100000 && flightDisplay > -10000 && checkSppStatus()) "${flightDisplay}" else "ERR",
-                    fontSize = 110.sp,
+                    fontSize = 80.sp,
                 )
                 Column(
                     modifier = Modifier
